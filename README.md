@@ -95,3 +95,51 @@ FFTStrategy <|.. CooleyTukeyFFT
 FFTProcessor *-- FFTStrategy
 WaveformAnalyzer o-- AudioSignal
 @endum
+🛠️ 3. Đặc Tả Thuộc Tính & Phương Thức Chi Tiết (API Specification)Tên Lớp (Class)Thuộc Tính (Attributes)Phương Thức Cơ Cốt Lõi (Core Methods)Vai Trò (Responsibility)AudioSignal- samples_ : std::vector<double>- sampleRate_ : int- numChannels_ : int- bitDepth_ : int- name_ : std::string+ getDuration() : double+ getPeakAmplitude() : double+ getRMS() : double+ getdBFS() : doubleĐóng gói và lưu trữ buffer PCM thô cùng siêu dữ liệu (metadata) của âm thanh.AudioFactoryKhông có thuộc tính (Static class)+ fromSine() : AudioSignal+ fromSquare() : AudioSignal+ fromTriangle() : AudioSignal+ fromWhiteNoise() : AudioSignal+ fromDTMF() : AudioSignalFactory Pattern: Chịu trách nhiệm khởi tạo tự động các thực thể sóng toán học chuẩn hóa.WaveformAnalyzer- sig_ : const AudioSignal&+ getZCR() : double+ getVariance() : double+ printStats() : void+ plotWaveform() : voidPhân tích trích xuất đặc trưng thời gian và kết xuất đồ thị sóng ASCII lên Console.FFTProcessor- strategy_ : std::unique_ptr<FFTStrategy>+ setStrategy() : void+ computeSpectrum() : SpectralResult+ plotSpectrum() : voidStrategy Pattern (Context): Điều phối luồng xử lý phổ, hoán đổi thuật toán lúc runtime.SignalProcessorKhông có thuộc tính (Static class)+ normalize() : void+ resample() : AudioSignal+ lowPassFilter() : void+ highPassFilter() : void+ echo() : void+ reverb() : voidChứa toàn bộ các thuật toán DSP can thiệp sửa đổi cấu trúc dữ liệu thô (Filter, Windows, Effects).AudioIOKhông có thuộc tính (Static class)+ readWAV() : AudioSignal+ writeWAV() : boolĐọc/Ghi dữ liệu nhị phân xuống ổ cứng theo cấu trúc chuẩn file WAV Microsoft RIFF.📊 4. Hình Ảnh Minh Họa Kết Quả Đầu Ra (Terminal Output Logs)Dưới đây là log chạy thực tế của hệ thống nâng cấp khi được biên dịch bằng lệnh g++ -std=c++14 main.cpp -o dsp && ./dsp:Giai Đoạn 2: Vẽ Đồ Thị Sóng ASCII (Waveform Analyzer Output)Plaintext  Waveform Graphic Display: sine_440Hz
+   +1.0 |--------------------------------------------------------|
+        | * * * * * * * * * * * * * * |
+        |                               * * * |
+        |             * * * * * |
+        |                   * * * * |
+        |* * * * * |
+    0.0 |    * * |
+        |     * * ** * |
+        |           * * * * * * *|
+        |  * * * * * * * * * * * |
+        |                                                        |
+   -1.0 |--------------------------------------------------------|
+          0                                                0.050s
+Giai Đoạn 3: Phân Tích Phổ DTMF Đã Sửa Lỗi Bin Tần Số (FFT Strategy Alignment)Nhận diện chuẩn xác hai tần số cấu thành phím bấm số 1 của điện thoại ($697\text{ Hz}$ và $1209\text{ Hz}$) nằm ở hai đỉnh cao nhất đạt giá trị biên độ bằng $1$:Plaintext  Spectrum Visualizer: dtmf_697_1209 [Cooley-Tukey FFT (O(N log N))]
+  Dominant Freq: 699.8 Hz
+
+       0 Hz |                                                | 0
+     118 Hz |                                                | 0
+     237 Hz |#                                               | 0
+     355 Hz |#                                               | 0
+     474 Hz |##                                              | 0
+     592 Hz |################################################| 1  <-- Đỉnh 1: 697 Hz chuẩn xác
+     711 Hz |###################                             | 0
+     829 Hz |##                                              | 0
+     947 Hz |#                                               | 0
+    1066 Hz |######                                          | 0
+    1184 Hz |############################################### | 1  <-- Đỉnh 2: 1209 Hz chuẩn xác
+    1303 Hz |##                                              | 0
+Giai Đoạn 4: Trích Xuất Dải Cửa Sổ Phổ (Windowing Functions Performance)Plaintext  Rectangular  Peak=0.8000  RMS=0.5657  DomFreq=441.4 Hz
+  Hamming      Peak=0.7988  RMS=0.3565  DomFreq=441.4 Hz
+  Hanning      Peak=0.7987  RMS=0.3463  DomFreq=441.4 Hz
+  Blackman     Peak=0.7980  RMS=0.3121  DomFreq=441.4 Hz
+🔧 5. Hướng Dẫn Biên Dịch Đa Nền Tảng (Windows / Linux / macOS)Nhờ việc cô lập hằng số $\pi$ dạng constexpr vào tệp tin Constants.h, dự án không cần định nghĩa macro hệ điều hành và hoàn toàn tương thích với mọi trình biên dịch:Môi trường Linux hoặc macOS TerminalBashg++ -std=c++14 main.cpp -o dsp_upgrade -lm && ./dsp_upgrade
+Môi trường Windows (Sử dụng PowerShell / MinGW g++)PowerShellg++ -std=c++14 main.cpp -o dsp_upgrade.exe -lm
+.\dsp_upgrade.exe
+Môi trường Windows (Sử dụng trình biên dịch MSVC trên Visual Studio)Mở Developer Command Prompt for VS và thực thi:DOScl /std:c++14 main.cpp /link /out:dsp_upgrade.exe
+dsp_upgrade.exe
+📂 6. Cấu Trúc File Thành Phần Bản Nâng CấpPlaintextProject1_TinHieuAmThanhUpgrade/
+├── Constants.h            # Khai báo hằng số toán học PI compile-time độc lập đa nền tảng (Sửa lỗi MSVC)
+├── AudioSignal.h          # Lớp lưu trữ PCM thô, thuộc tính vật lý và các hàm phân tích năng lượng nền dBFS
+├── AudioIO.h              # Cấu trúc nhị phân WAV Header và lớp AudioFactory phát sinh sóng hình học [Factory]
+├── WaveformAnalyzer.h     # Bộ phân tích miền thời gian: Trích xuất chỉ số RMS, Peak, ZCR và kết xuất đồ thị sóng
+├── FFTProcessor.h         # Quản lý cấu trúc đa hình FFTStrategy (DFTImpl / CooleyTukeyFFT) và vẽ đồ thị phổ cột
+├── SignalProcessor.h      # Trọng tâm DSP nâng cấp: Windowing, Complementary HPF, Anti-aliased Resample, Echo, Reverb
+├── main.cpp               # Kịch bản tích hợp tự động điều phối 9 bước nghiệm thu tính năng hệ thống đồ án
+└── Makefile               # Công cụ tự động hóa quá trình build mã nguồn trên môi trường Linux
+Đồ án nghiên cứu nâng cấp Hệ thống Xử lý Tín hiệu âm thanh số hướng đối tượng — Học viện Công nghệ Bưu chính Viễn thông (PTIT).
